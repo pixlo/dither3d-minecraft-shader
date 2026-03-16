@@ -2,7 +2,10 @@
  * Dither3D for Minecraft Iris/OptiFine shader packs.
  * Ported from Unity HLSL (Dither3DInclude.cginc) to GLSL.
  *
- * Original copyright (c) 2025 Rune Skovbo Johansen
+ * Original algorithm and textures by Rune Skovbo Johansen
+ * https://github.com/runevision/Dither3D
+ *
+ * Copyright (c) 2025 Rune Skovbo Johansen
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
