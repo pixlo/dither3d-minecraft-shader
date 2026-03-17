@@ -7,6 +7,7 @@ Ported from [Dither3D](https://github.com/runevision/Dither3D) by **Rune Skovbo 
 ## Screenshots
 
 ![Dither3D in Minecraft](https://github.com/pixlo/dither3d-minecraft-shader/raw/main/screenshots/preview.png)
+![Dither3D RGB mode](https://github.com/pixlo/dither3d-minecraft-shader/raw/main/screenshots/preview-1.png)
 
 ## Features
 
