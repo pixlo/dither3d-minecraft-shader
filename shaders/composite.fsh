@@ -12,7 +12,15 @@ uniform vec3 cameraPosition;
 uniform float viewWidth;
 uniform float viewHeight;
 
-// --- Dither3D library (getDither3D, getGrayscale) ---
+// --- Dither3D tunable parameters ---
+#define dither_Scale 6.5             // [4.0 5.0 5.5 6.0 6.5 7.0 8.0 9.0 10.0]
+#define dither_SizeVariability 0.0   // [0.0 0.25 0.5 0.75 1.0]
+#define dither_Contrast 0.5          // [0.1 0.25 0.5 0.75 1.0 1.5 2.0]
+#define dither_StretchSmoothness 1.0 // [0.0 0.25 0.5 1.0 1.5 2.0]
+#define dither_InputExposure 1.0     // [0.5 0.75 1.0 1.25 1.5 2.0]
+#define dither_InputOffset 0.0       // [-0.2 -0.1 0.0 0.1 0.2]
+
+// --- Dither3D library ---
 #include "lib/dither3d.glsl"
 
 // --- Varying input from vertex shader ---
@@ -45,54 +53,42 @@ void main() {
         return;
     }
 
-    // DEBUG: change mode to isolate issues
-    // 0 = passthrough (normal scene), 1 = depth viz, 2 = world pos, 3 = dither
-    #define DEBUG_MODE 3
+    vec3 absoluteWorldPos = getWorldPos(texCoord, depth);
 
-    #if DEBUG_MODE == 0
-        gl_FragData[0] = sceneColor;
-    #elif DEBUG_MODE == 1
-        gl_FragData[0] = vec4(vec3(depth), 1.0);
-    #elif DEBUG_MODE == 2
-        vec3 wp = getWorldPos(texCoord, depth);
-        gl_FragData[0] = vec4(fract(wp.x), fract(wp.z), 0.0, 1.0);
-    #else
-        vec3 absoluteWorldPos = getWorldPos(texCoord, depth);
+    // Reconstruct surface normal from world-position screen derivatives.
+    vec3 dWdx = dFdx(absoluteWorldPos);
+    vec3 dWdy = dFdy(absoluteWorldPos);
+    vec3 normal = normalize(cross(dWdx, dWdy));
+    vec3 absN = abs(normal);
 
-        // Reconstruct surface normal from world-position screen derivatives.
-        vec3 dWdx = dFdx(absoluteWorldPos);
-        vec3 dWdy = dFdy(absoluteWorldPos);
-        vec3 normal = normalize(cross(dWdx, dWdy));
-        vec3 absN = abs(normal);
+    // Triplanar UV: pick projection plane based on dominant normal axis.
+    // Minecraft blocks are axis-aligned so this gives clean results.
+    vec2 ditherUV;
+    vec2 dx, dy;
+    if (absN.y >= absN.x && absN.y >= absN.z) {
+        // Horizontal surface (floor/ceiling) -> XZ
+        ditherUV = absoluteWorldPos.xz;
+        dx = dFdx(absoluteWorldPos.xz);
+        dy = dFdy(absoluteWorldPos.xz);
+    } else if (absN.x >= absN.z) {
+        // East/West wall -> YZ
+        ditherUV = absoluteWorldPos.yz;
+        dx = dFdx(absoluteWorldPos.yz);
+        dy = dFdy(absoluteWorldPos.yz);
+    } else {
+        // North/South wall -> XY
+        ditherUV = absoluteWorldPos.xy;
+        dx = dFdx(absoluteWorldPos.xy);
+        dy = dFdy(absoluteWorldPos.xy);
+    }
 
-        // Triplanar UV: pick projection plane based on dominant normal axis.
-        // Minecraft blocks are axis-aligned so this gives clean results.
-        vec2 ditherUV;
-        vec2 dx, dy;
-        if (absN.y >= absN.x && absN.y >= absN.z) {
-            // Horizontal surface (floor/ceiling) -> XZ
-            ditherUV = absoluteWorldPos.xz;
-            dx = dFdx(absoluteWorldPos.xz);
-            dy = dFdy(absoluteWorldPos.xz);
-        } else if (absN.x >= absN.z) {
-            // East/West wall -> YZ
-            ditherUV = absoluteWorldPos.yz;
-            dx = dFdx(absoluteWorldPos.yz);
-            dy = dFdy(absoluteWorldPos.yz);
-        } else {
-            // North/South wall -> XY
-            ditherUV = absoluteWorldPos.xy;
-            dx = dFdx(absoluteWorldPos.xy);
-            dy = dFdy(absoluteWorldPos.xy);
-        }
+    // Gamma correction on full color (linear -> perceptual).
+    vec4 adjustedColor = sceneColor;
+    adjustedColor.rgb = pow(max(adjustedColor.rgb, vec3(0.0)), vec3(1.0 / 2.0));
 
-        // Gamma correction: Minecraft stores colors in linear space.
-        float brightness = getGrayscale(sceneColor.rgb);
-        brightness = pow(max(brightness, 0.0), 1.0 / 2.0);  // sqrt — gentler than 1/2.2
-
-        vec4 ditherResult = getDither3D(colortex4, colortex5,
-                                        ditherUV, texCoord,
-                                        dx, dy, brightness);
-        gl_FragData[0] = vec4(vec3(ditherResult.x), 1.0);
-    #endif
+    // Color dithering (respects DITHER_COLOR_MODE: 0=Grayscale, 1=RGB, 2=CMYK)
+    vec4 dithered = getDither3DColor(colortex4, colortex5,
+                                      ditherUV, texCoord,
+                                      dx, dy, adjustedColor);
+    gl_FragData[0] = vec4(dithered.rgb, 1.0);
 }

@@ -32,26 +32,21 @@ const float DITHER_INV_ZRES   = 1.0 / 16.0;
 const float DITHER_LAYER_COUNT = 16.0;
 
 // ---------------------------------------------------------------------------
-// Tunable parameters -- defaults matching the Unity material inspector
-// ---------------------------------------------------------------------------
-const float dither_Scale            = 6.5;
-const float dither_SizeVariability  = 0.0;
-const float dither_Contrast         = 0.5;
-const float dither_StretchSmoothness = 1.0;
-const float dither_InputExposure    = 1.0;
-const float dither_InputOffset      = 0.0;
-
-// ---------------------------------------------------------------------------
 // Feature toggles
 // ---------------------------------------------------------------------------
-#define RADIAL_COMPENSATION 1
-#define INVERSE_DOTS 0
+#define RADIAL_COMPENSATION 1  // [0 1]
+#define INVERSE_DOTS 0         // [0 1]
 #define QUANTIZE_LAYERS 0
 
 // Minecraft/Iris may not flip PNGs on load (unlike standard OpenGL).
 // If the dither pattern looks inverted (fine detail where coarse should be),
 // set this to 1 to reverse layer indexing in the atlas.
-#define FLIP_ATLAS_LAYERS 1
+#define FLIP_ATLAS_LAYERS 1    // [0 1]
+
+// ---------------------------------------------------------------------------
+// Color mode: 0=Grayscale, 1=RGB, 2=CMYK
+// ---------------------------------------------------------------------------
+#define DITHER_COLOR_MODE 0    // [0 1 2]
 
 // ---------------------------------------------------------------------------
 // sampleDitherAtlas
@@ -353,11 +348,8 @@ float getGrayscale(vec4 color) {
 }
 
 // ===========================================================================
-// Stubs for future colour modes (RGB / CMYK)
-// These are wrapped in #ifdef so they compile away when not needed.
+// Colour mode support (RGB / CMYK)
 // ===========================================================================
-
-#ifdef DITHER_COLOR_SUPPORT
 
 // ---------------------------------------------------------------------------
 // RotateUV -- port of RotateUV (lines 262-265)
@@ -415,14 +407,14 @@ vec4 getDither3DColor(
     // Adjust brightness by exposure and offset.
     color.rgb = clamp(color.rgb * dither_InputExposure + dither_InputOffset, 0.0, 1.0);
 
-    #ifdef DITHERCOL_GRAYSCALE
+    #if DITHER_COLOR_MODE == 0
         vec4 dither = getDither3D(ditherAtlas, rampTex, ditherUV, texCoord, dx, dy, getGrayscale(color));
         color.rgb = vec3(dither.x);
-    #elif defined(DITHERCOL_RGB)
+    #elif DITHER_COLOR_MODE == 1
         color.r = getDither3D(ditherAtlas, rampTex, ditherUV, texCoord, dx, dy, color.r).x;
         color.g = getDither3D(ditherAtlas, rampTex, ditherUV, texCoord, dx, dy, color.g).x;
         color.b = getDither3D(ditherAtlas, rampTex, ditherUV, texCoord, dx, dy, color.b).x;
-    #elif defined(DITHERCOL_CMYK)
+    #elif DITHER_COLOR_MODE == 2
         vec4 cmyk = rgbToCMYK(color.rgb);
         // C, M, Y, K at angles 15, 75, 0, 45 degrees.
         cmyk.x = getDither3D(ditherAtlas, rampTex, rotateUV(ditherUV, vec2(0.966, 0.259)), texCoord, dx, dy, cmyk.x).x;
@@ -434,7 +426,5 @@ vec4 getDither3DColor(
 
     return color;
 }
-
-#endif // DITHER_COLOR_SUPPORT
 
 #endif // DITHER3D_GLSL

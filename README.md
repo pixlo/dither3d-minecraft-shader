@@ -19,19 +19,23 @@ Ported from [Dither3D](https://github.com/runevision/Dither3D) by **Rune Skovbo 
 ## Installation
 
 1. Install [Iris Shaders](https://irisshaders.dev/) (Fabric/Quilt) or OptiFine
-2. Download the [latest release](https://github.com/pixlo/dither3d-minecraft-shader/releases) or clone this repo
-3. Place the folder (or zip) into `.minecraft/shaderpacks/`
+2. Grab `Dither3D-Minecraft.zip` from the `build/` folder
+3. Place it into `.minecraft/shaderpacks/`
 4. In-game: **Options > Video Settings > Shader Packs** > select **Dither3D-Minecraft**
 
 ## Configuration
 
-Edit `shaders/lib/dither3d.glsl` to tweak parameters:
+All parameters are available in-game via **Iris Shader Settings** (Video Settings > Shader Packs > Settings).
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
+| `DITHER_COLOR_MODE` | 0 | 0 = Grayscale, 1 = RGB, 2 = CMYK |
 | `dither_Scale` | 6.5 | Dot size. Higher = larger dots |
 | `dither_Contrast` | 0.5 | Sharpness of dot edges |
 | `dither_SizeVariability` | 0.0 | 0 = uniform dots, 1 = size varies with brightness |
+| `dither_InputExposure` | 1.0 | Brightness multiplier |
+| `dither_InputOffset` | 0.0 | Brightness offset |
+| `dither_StretchSmoothness` | 1.0 | Anisotropy contrast adjustment |
 | `RADIAL_COMPENSATION` | 1 | Compensate for perspective distortion |
 | `INVERSE_DOTS` | 0 | Invert black/white |
 | `FLIP_ATLAS_LAYERS` | 1 | Flip atlas layer order (needed for Iris) |
